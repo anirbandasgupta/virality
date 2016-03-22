@@ -1,0 +1,70 @@
+\documentclass[20pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\title{Virality Models for LinkedIn}
+
+\begin{document}
+ \maketitle
+\section{Reinforced Poisson Model}
+
+The data that we have is of the following form. For every timestamp $t$ (hourly), we have a set of measures of spread--- 
+impressions, shares, likes and comments.
+We do not yet have any other features for the network structure. The model that we propose is the following -- this is a slight modification
+of the existing models using reinforced Poisson process since we intend to do this only on data that is aggregated at a hourly (or smaller) granularity.
+Such models were studied, e.g. in~\cite{Muliere200059}. There are some related models e.g.~\cite{shen2014modeling} and ~\cite{zhao2015seismic} that are based on continuous time 
+reinforced Poisson process or Hawkes process. 
+
+Let us say WLOG that we will build a model for the number of impressions. 
+Say that $\lambda_t$ is the rate of the Poisson process at timestamp $t$, and the assumption is that this rate remains fixed for this 
+timestamp (** if we take granularity of an hour, is this a reasonable assumption?**) Let $X_t$ denote the number of impressions at timestamp $t$,
+$X_t \ge 0$. 
+Given this rate $\lambda_t$, the number of impressions that we expect for this meme in this hour is given by
+\begin{align*}
+ Pr[X_t = x] = \frac{e^{-\lambda_t \lambda_t^x}}{x!}
+\end{align*}
+The main difference with the previous models is that the rate $\lambda_t$ is going through discrete changes instead of a continuous one. 
+The core of this model is the following dependence of $\lambda_t$ on the current status of the process. Let us say that following:
+\begin{align*}
+ \lambda_t = \theta \times g(X_1, X_2, \ldots, X_{t-1}) \times \delta(t)
+\end{align*}
+\begin{itemize}
+ \item $\theta$ indicates the inherent popularity of this meme. 
+ \item $g(\cdot)$ captures the ``reinforcement'', i.e. how this rate depends on the history. One possible way of modeling it is as follows: model 
+ $g(\cdot)$ as a product of two functions $g(\{X_i\}) = h(X_{t-1}) \times f(\sum_{i \le t-1} X_i)$, capturing the most recent information, and the 
+ aggregate number of impressions. 
+ Alternately, we can say that $g(\{X_i\}) = \sum_{i\le t-1} \alpha^{t-i} X_i$, an exponentially decaying model. Here $\alpha$ is the parameter to fit.  
+ Note that since we have multiple measures of spread (impressions, shares, likes) we can also do the following. Let $S_t$ and $L_t$ be the number of shares
+ and likes at time $t$. We can also have a more general $g(\cdot)$ that is dependent on $\{S_i\}$ and $\{L_i\}$ in addition to $\{X_i\}$. This makes
+ more sense since likes and shares for a user likely cause impressions to be shown for her neighbors. 
+
+ 
+ \item $\delta(t)$ indicates the daily variation in activity. To model this we propose the following--- estimate an average rate for each
+ of the $24\times 7$ hours of the week and use the appropriate rate as $\delta(t)$.    
+
+\end{itemize}
+
+Suppose we have data for a particular meme at timestamps $\{t_1, t_2, \ldots, t_n\}$. Suppose the number of impressions for $t_i$ is $n_i$. 
+Then the likelihood for this data can be written as follows:
+\begin{align*}
+ {\cal L} & = \Pi_{i=1}^n  Pr[X_i = n_i| X_1\ldots X_{i-1}] = \Pi_i \exp(-\lambda_i) \frac{\lambda_i^{n_i}}{n_i !}\\
+ \ln({\cal L}) &=  \sum_i ( - \lambda_i + n_i \ln(\lambda_i) + \ln(n_i!) ) .  
+\end{align*}
+Thus, we need to find the parameters to maximize $ \sum_i ( - \lambda_i + n_i \ln(\lambda_i))$. 
+We can then fit in the model and estimate the parameters. We need to then rank these memes by their
+predicted maximum sizes. In this case, if $C_t = \sum_{i\le t} X_i $ indicate the total number of impressions at time $t$, then
+\begin{align*}
+ E[C_{t+1} - C_t | C_t] & = \lambda_t
+\end{align*}
+If we assume that $\widehat{\lambda}_t$ has not changed after the training period, then we can obtain this estimate $c_{t+K}$ for any $K$ easily
+as $E[c_{t+K}] = c_t + K \widehat{\lambda}_t $. We can choose an appropriate $K$, e.g. for $K=24$ hours.  
+
+
+
+\bibliographystyle{abbrv}
+\bibliography{ref}
+
+ 
+ 
+\end{document}
+  AAXSSSSSS
+  
